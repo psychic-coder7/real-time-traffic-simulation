@@ -1,4 +1,4 @@
-// ===================== Main.java (same functionality + reduced Hinglish comments) =====================
+// ===================== Main.java =====================
 package org.example;
 
 import javax.swing.*;

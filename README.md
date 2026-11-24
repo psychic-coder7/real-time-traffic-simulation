@@ -1,120 +1,84 @@
 # Real-time Traffic Simulation (Java + SUMO)
 
-A Java application that controls a SUMO traffic simulation in real time via TraCI/TraaS.  
-It provides a GUI to start/stop the simulation, inject vehicles, control traffic lights, and monitor basic metrics.  
-The project also includes logging and (optional) export functionality depending on the implementation.
+A Java Swing application that controls a [SUMO](https://eclipse.dev/sumo/) traffic simulation in real time through TraCI (libtraci).
+You can start and stop the simulation, inject vehicles on alternative routes, switch traffic lights manually or by a simple rule, and watch live traffic metrics on an interactive map.
+
+University team project, Frankfurt University of Applied Sciences.
 
 ---
 
 ## Features
 
-- Live SUMO connection (TraCI/TraaS / libtraci)
-- GUI for interaction (start/stop, controls)
-- Vehicle injection
-- Traffic light control
-- Logging of simulation events
-- Export of results (CSV/PDF depending on implementation)
+- **Live SUMO connection** via libtraci; the simulation loop runs in its own thread so the Swing UI never freezes
+- **Interactive map** rendered from the SUMO network file (`.net.xml`): zoom, pan, rotate, reset (double-click or `R`)
+- **Vehicle injection**: cars, trucks and buses on four alternative long routes (A–D) per scenario, computed with via-points and `Simulation.findRoute()`
+- **Traffic light control**: force red / green, reset to the original program, or enable a rule-based stop/go mode driven by queue length
+- **Live metrics**: active and visible vehicles, vehicles by type, average waiting time, congestion index, throughput (vehicles/hour over a 5-minute window), mean speed, plus a trend chart
+- **Map filters** by vehicle type and minimum speed
+- **Export**: metrics as CSV and a PDF summary including the trend chart
+- **Logging** to console and rotating log files
 
----
+## Architecture
 
-## Requirements (What you need installed)
+| Class | Responsibility |
+|---|---|
+| `Main` | Startup checks (SUMO config present), loads route data, launches the GUI |
+| `GUI` | Swing layout, controls and event wiring |
+| `LiveConnectionSumo` | Simulation loop in a background thread, metric calculation, CSV/PDF export |
+| `MapVisualisation` | Parses `.net.xml` (with XXE-safe XML parsing), world-to-screen transform, map and trend chart rendering |
+| `TrafficControl` | Manual and rule-based traffic light control |
+| `VehicleInjection` | Route parsing, route-variant generation and caching, version-tolerant vehicle injection |
+| `Logging` | Logger setup (console + file) |
 
-### Required
-- **Java 17** (or the version configured in `pom.xml`)
-- **Maven**
-- **SUMO** installed and usable from the command line (so `sumo-gui` works)
+Thread safety: the UI thread and the simulation thread share state through `volatile` fields, `ConcurrentHashMap` and synchronized lists; label and chart updates are scheduled on the Swing event thread with `SwingUtilities.invokeLater`.
 
-### Recommended
-- Use a SUMO version close to the SUMO bindings used in `pom.xml` (reduces native/library mismatch issues).
+## Requirements
 
----
+- **Java 17**
+- **Maven 3**
+- **SUMO** installed so that `sumo-gui` runs from the command line. Use a SUMO version close to the libtraci version in `pom.xml` (currently 1.24.0) to avoid native library mismatches.
 
-## Project Structure
+## Project structure
 
-- `src/main/java/org/example/` — Java source code (Maven layout)
-- `sumo/` — SUMO configuration files (`final.sumocfg`, `final.net.xml`, `final.rou.xml`)
-- `pom.xml` — Maven build configuration
-- `milestoneREADME.md` — Milestone 3 submission notes / documentation
+```
+pom.xml                     Maven build configuration
+src/main/java/org/example/  Java source code
+sumo/                       SUMO configuration (final.sumocfg, final.net.xml, final.rou.xml)
+Project Documentation.pdf   Project documentation
+```
 
----
+## How to run
 
-## How to Run (Step-by-step for new users)
+Run all commands from the project root (the folder containing `pom.xml`).
 
-### Step 1 — Download / Open the project
-You should have a folder like this:
+1. Check your installation:
 
-- `pom.xml`
-- `src/`
-- `sumo/`
+   ```bash
+   java -version        # should show 17.x
+   mvn -v
+   sumo-gui --version
+   ```
 
-> IMPORTANT: All commands below must be run from the **project root folder** (the folder containing `pom.xml`).
+2. Build (the first build downloads dependencies):
 
----
+   ```bash
+   mvn clean compile
+   ```
 
-### Step 2 — Open a terminal in the project root
+3. Start the application:
 
-#### Windows
-- Open the project folder in File Explorer
-- Click the address bar and type `cmd` → press Enter  
-  (or Shift + Right Click inside the folder → “Open PowerShell window here”)
+   ```bash
+   mvn exec:java -Dexec.mainClass="org.example.Main"
+   ```
 
-#### macOS
-- Right-click the project folder → Services → “New Terminal at Folder”  
-  (or open Terminal and `cd` into the folder)
+4. In the window, click **Start**. SUMO GUI opens with `sumo/final.sumocfg`. Then you can:
+   - set the simulation speed (1x–10x)
+   - choose a scenario and spawn **Car**, **Truck** or **Bus**
+   - pick a traffic light and press **Red**, **Green** or **Reset**, or enable **Rule-based TLS (stop/go)**
+   - filter the map, and use **Export CSV** / **Export PDF**
 
-#### Linux
-- Right-click in the folder → “Open Terminal Here”  
-  (or open Terminal and `cd` into the folder)
+## Troubleshooting
 
----
-
-### Step 3 — Verify installs (this confirms setup is correct)
-
-Run these:
-
-```bash
-java -version
-mvn -v
-sumo-gui --version
-
-Expected:
-
-    java -version shows 17.x
-
-    mvn -v prints Maven version
-
-    sumo-gui --version prints SUMO version
-
-If any of these fail, go to the Troubleshooting section below.
-Step 4 — Build (downloads dependencies automatically)
-
-mvn clean compile
-
-First time may take a few minutes because Maven downloads libraries.
-Step 5 — Run the app (recommended method)
-
-mvn exec:java -Dexec.mainClass="org.example.Main"
-
-What should happen:
-
-    The Java GUI window opens
-
-    When you start simulation from GUI, SUMO GUI should start using:
-
-        sumo/final.sumocfg
-
-Step 6 — What to do in the GUI (basic usage)
-
-    Click Start / Connect (wording may differ)
-
-    SUMO should open
-
-    Use GUI buttons to:
-
-        Start/stop simulation
-
-        Inject vehicles
-
-        Control traffic lights
-
-        View basic metrics/logs
+- **`sumo-gui` not found**: add SUMO's `bin` folder to your `PATH` and set `SUMO_HOME`.
+- **Native library / `UnsatisfiedLinkError`**: the SUMO installation and the libtraci version in `pom.xml` differ; align them.
+- **"Missing SUMO config file" at startup**: start the app from the project root so `sumo/final.sumocfg` can be found.
