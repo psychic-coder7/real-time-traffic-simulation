@@ -1,4 +1,4 @@
-// ===================== TrafficControl.java (refactored + reduced Hinglish comments, same behavior) =====================
+// ===================== TrafficControl.java =====================
 package org.example;
 
 import org.eclipse.sumo.libtraci.*;
@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class TrafficControl {
 
-    // ComboBox me TLS ko readable tarike se show karne ke liye item model
+    // Item model to show traffic lights (TLS) readably in the ComboBox
     public static class TlsItem {
         public final String id;   // real SUMO TLS id
         public final String tag;  // human-friendly label
@@ -31,14 +31,14 @@ public class TrafficControl {
     private final JComboBox<TlsItem> tlComboRef;
     private final JLabel tlStateLabel;
 
-    // Cached TLS ids (rule-based scanning ke liye)
+    // Cached TLS ids (for rule-based scanning)
     private volatile List<String> tlsIdsCached = new ArrayList<>();
     private volatile String selectedTlsId = null;
 
     // Manual forcing modes
     public enum ManualTlsMode { NONE, FORCE_RED, FORCE_GREEN }
 
-    // Shared maps: GUI thread + simulation thread touch kar sakte
+    // Shared maps: accessed by both the GUI thread and the simulation thread
     private final ConcurrentHashMap<String, ManualTlsMode> manualTlsMode = new ConcurrentHashMap<>();
     private final Map<String, String> manualOriginalPrograms = new ConcurrentHashMap<>();
 
@@ -69,7 +69,7 @@ public class TrafficControl {
     public boolean isRuleBasedTlsEnabled() { return ruleBasedTlsEnabled; }
     public void setSelectedTls(String tlsId) { this.selectedTlsId = tlsId; }
 
-    // Checkbox ON/OFF: OFF => rule-based se touched TLS restore
+    // Checkbox ON/OFF: OFF => restore the TLS changed by the rule-based mode
     public void setRuleBasedTlsEnabled(boolean enabled) {
         this.ruleBasedTlsEnabled = enabled;
         if (!enabled) restoreRuleBasedToAuto();
@@ -79,7 +79,7 @@ public class TrafficControl {
         );
     }
 
-    // SUMO se TLS ids read karke dropdown rebuild
+    // Read TLS ids from SUMO and rebuild the dropdown
     public void rebuildTrafficLightDropdown() {
         try {
             List<String> ids = readTlsIdsFromSumo();
@@ -127,7 +127,7 @@ public class TrafficControl {
         }
     }
 
-    // Har simulation step: pehle rule-based, phir manual override (manual always wins)
+    // Every simulation step: rule-based first, then manual override (manual always wins)
     public void applyPerStep(double simTime) {
         applyRuleBasedTls(simTime);
         applyManualOverrideIfNeeded();
@@ -191,7 +191,7 @@ public class TrafficControl {
         });
     }
 
-    // Har step pe manual state re-apply (SUMO program override na kar de)
+    // Re-apply manual state every step (so the SUMO program does not override it)
     private void applyManualOverrideIfNeeded() {
         for (Map.Entry<String, ManualTlsMode> e : manualTlsMode.entrySet()) {
             String tlsId = e.getKey();
@@ -273,7 +273,7 @@ public class TrafficControl {
         } catch (Exception ignore) {}
     }
 
-    // Demand estimate: controlled lanes me halting vehicles sum
+    // Demand estimate: sum of halting vehicles on the controlled lanes
     private int haltingVehiclesNearTls(String tlsId) {
         StringVector lanes = safeGetControlledLanes(tlsId);
         if (lanes == null || lanes.size() == 0) return 0;

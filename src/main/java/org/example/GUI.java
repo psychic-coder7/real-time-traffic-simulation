@@ -1,13 +1,13 @@
-// ===================== GUI.java (refactored, compile-safe + Hinglish mega-comments) =====================
+// ===================== GUI.java =====================
 package org.example;
 
-// ===================== IMPORTS ka matlab =====================
+// ===================== What the imports are for =====================
 // javax.swing.*  => Swing UI components: JFrame, JPanel, JButton, JLabel, JComboBox, JCheckBox, JSlider, JScrollPane etc.
-// javax.swing.border.TitledBorder => panel ke upar "title border" (box ke upar heading)
+// javax.swing.border.TitledBorder => titled border drawn around a panel (heading on top of the box)
 // java.awt.*     => UI layout + colors + fonts + dimensions + cursor etc.
-// java.awt.image.BufferedImage => image type (PDF export me chart ka screenshot bhejne ke liye)
-// java.util.Hashtable => slider labels ke liye (JSlider label table needs Hashtable)
-// java.util.Locale => number formatting stable rakhne ke liye (decimal dot/comma issue na ho)
+// java.awt.image.BufferedImage => image type (used to pass a chart snapshot to the PDF export)
+// java.util.Hashtable => slider labels (JSlider label table needs a Hashtable)
+// java.util.Locale => keeps number formatting stable (avoids decimal dot/comma issues)
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -18,12 +18,12 @@ import java.util.Locale;
 
 public final class GUI {
 
-    // Private constructor => iss class ka object koi nahi bana sakta
-    // GUI ko sirf static method launch() se use karna hai.
+    // Private constructor => this class cannot be instantiated
+    // The GUI is used only through the static launch() method.
     private GUI() {}
 
     // ===================== UI Theme =====================
-    // Ye colors UI ka look set karte hain.
+    // These colors define the look of the UI.
     // HEX color: 0xRRGGBB format.
     private static final Color BG_DARK = new Color(0x0F172A);   // main window background (dark)
     private static final Color BG_PANEL = new Color(0x111827);  // side panels background
@@ -34,12 +34,12 @@ public final class GUI {
     private static final Color BORDER_COL = new Color(0x1F2937);    // border line color
 
     // ===================== FILTER STATE =====================
-    // MapVisualisation.MapPanel vehicles draw karta hai.
-    // Filter ka kaam: decide karna kaunsi vehicle draw hogi/ nahi hogi.
+    // MapVisualisation.MapPanel draws the vehicles.
+    // The filter decides which vehicles are drawn and which are hidden.
     public static class VehicleFilter implements MapVisualisation.Filter {
 
-        // volatile: multi-thread scenario me latest value visible rahe.
-        // UI thread checkbox change karega, SUMO thread map draw karega.
+        // volatile: keeps the latest value visible across threads.
+        // The UI thread changes the checkboxes, the SUMO thread draws the map.
         public volatile boolean showCars = true;
         public volatile boolean showTrucks = true;
         public volatile boolean showBuses = true;
@@ -58,7 +58,7 @@ public final class GUI {
             return true;
         }
 
-        // MapPanel call karega: "is vehicle allowed?"
+        // Called by MapPanel: "is this vehicle allowed?"
         @Override
         public boolean allows(String type, double speedMps) {
             // allow only if type allowed AND speed >= minSpeed
@@ -66,11 +66,11 @@ public final class GUI {
         }
     }
 
-    // Global filter: GUI checkboxes & sliders isi object ki values update karte hain
+    // Global filter: GUI checkboxes and sliders update the values of this object
     public static final VehicleFilter FILTER = new VehicleFilter();
 
     // ===================== UI Labels =====================
-    // Ye labels right panel me live update hote rehte hain (LiveConnectionSumo se)
+    // These labels in the right panel are updated live (by LiveConnectionSumo)
     private static final JLabel activeVehiclesLabel = new JLabel("Active Vehicles (all): 0");
     private static final JLabel visibleVehiclesLabel = new JLabel("Visible Vehicles (filtered): 0");
     private static final JLabel byTypeLabel = new JLabel("By Type: car=0 truck=0 bus=0");
@@ -84,8 +84,8 @@ public final class GUI {
     private static final JLabel tlStateLabel = new JLabel("TL State: -");
 
     // ===================== UI Parts holder =====================
-    // Problem: GUI me bahut saare components => local variables ka jungle 🌳
-    // Solution: UiParts me sab store => wireActions(...) me clean access.
+    // Problem: the GUI has many components => too many local variables
+    // Solution: store them all in UiParts => clean access in wireActions(...).
     private static class UiParts {
         JFrame frame;                               // main window
         MapVisualisation.MapPanel mapPanel;         // center map panel
@@ -111,10 +111,10 @@ public final class GUI {
     }
 
     // ===================== Launch =====================
-    // Ye function poori GUI banata + show karta.
+    // Builds and shows the complete GUI.
     public static void launch() {
 
-        // 1) Look & Feel set: OS jaisa look (Windows/Mac)
+        // 1) Set Look & Feel: native OS look (Windows/Mac)
         setSystemLookAndFeel();
 
         // 2) UiParts holder create
@@ -140,16 +140,16 @@ public final class GUI {
         ui.frame.setLocationRelativeTo(null); // screen center
         ui.frame.setVisible(true);            // display it
 
-        // 8) onStopped => simulation stop hone pe app close
+        // 8) onStopped => close the app when the simulation stops
         Runnable onStopped = () -> {
             ui.frame.dispose();  // window close
             System.exit(0);      // JVM exit
         };
 
-        // 9) TrafficControl: TLS dropdown + status label handle karega
+        // 9) TrafficControl: handles the TLS dropdown and status label
         TrafficControl trafficControl = new TrafficControl(ui.tlCombo, tlStateLabel);
 
-        // 10) LiveConnectionSumo: SUMO ke saath live connection + metrics + map updates
+        // 10) LiveConnectionSumo: live connection to SUMO + metrics + map updates
         LiveConnectionSumo live = new LiveConnectionSumo(
                 ui.frame,
                 ui.mapPanel,
@@ -169,7 +169,7 @@ public final class GUI {
                 onStopped
         );
 
-        // 11) Buttons/sliders ke listeners set
+        // 11) Register listeners for buttons and sliders
         wireActions(ui, live, trafficControl);
 
         Logging.LOG.info("UI ready. Scenarios + long variants will populate after SUMO starts.");
@@ -196,10 +196,10 @@ public final class GUI {
 
     // ===================== Map panel =====================
     private static MapVisualisation.MapPanel buildMapPanel() {
-        // MapPanel constructor filter leta hai => draw decisions for vehicles
+        // MapPanel takes the filter => decides which vehicles to draw
         MapVisualisation.MapPanel mapPanel = new MapVisualisation.MapPanel(FILTER);
 
-        // map ka background white
+        // white map background
         mapPanel.setBackground(Color.WHITE);
         return mapPanel;
     }
@@ -231,7 +231,7 @@ public final class GUI {
         ui.exportBtn = new JButton("Export CSV");
         ui.exportPdfBtn = new JButton("Export PDF");
 
-        // Route dropdown (start ke baad populate => initially disabled)
+        // Route dropdown (populated after start => initially disabled)
         JLabel routeLabel = new JLabel("Select scenario (same destination, 4 long variants)");
         ui.routeCombo = new JComboBox<>();
         ui.routeCombo.setEnabled(false);
@@ -251,7 +251,7 @@ public final class GUI {
         ui.truckBtn = new JButton("Truck");
         ui.busBtn = new JButton("Bus");
 
-        // Buttons ko ek panel me row style me rakha (FlowLayout)
+        // Buttons placed in a single row panel (FlowLayout)
         JPanel vehicleTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         vehicleTypePanel.setBackground(BG_PANEL);
         vehicleTypePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -283,7 +283,7 @@ public final class GUI {
         // Traffic light controls
         JLabel tlLabel = new JLabel("Traffic Light");
         ui.tlCombo = new JComboBox<>();
-        ui.tlCombo.setEnabled(false); // SUMO start ke baad populate
+        ui.tlCombo.setEnabled(false); // populated after SUMO starts
         ui.tlCombo.setMaximumSize(new Dimension(360, 30));
         ui.tlCombo.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -326,8 +326,8 @@ public final class GUI {
         stylePrimaryButton(ui.tlResetBtn, ACCENT_BLUE);
 
         // ===================== Layout add order =====================
-        // Pattern samajh: vertical strut = gap (spacing)
-        // controls.add(component) = panel me component chipka do
+        // Pattern: vertical strut = gap (spacing)
+        // controls.add(component) = add the component to the panel
 
         controls.add(Box.createVerticalStrut(6));
         controls.add(rowPanel(ui.startBtn, ui.stopBtn));
@@ -525,7 +525,7 @@ public final class GUI {
         ui.busBtn.addActionListener(e -> VehicleInjection.injectVehicles(ui.frame, Main.TYPE_BUS,
                 (VehicleInjection.RouteDef) ui.routeCombo.getSelectedItem(), numVehiclesSupplier.get()));
 
-        // TLS dropdown selection => TrafficControl ko selected id do
+        // TLS dropdown selection => pass the selected id to TrafficControl
         ui.tlCombo.addActionListener(e -> {
             TrafficControl.TlsItem item = (TrafficControl.TlsItem) ui.tlCombo.getSelectedItem();
             trafficControl.setSelectedTls(item == null ? null : item.id);
@@ -563,7 +563,7 @@ public final class GUI {
             // km/h conversion: 1 m/s = 3.6 km/h
             double kmh = v * 3.6;
 
-            // Locale.US => decimal dot fix (Germany me comma aa sakta hai)
+            // Locale.US => always use a decimal dot (German locale would use a comma)
             ui.minSpeedValueLabel.setText(
                     String.format(Locale.US, ">= %.1f m/s (%.0f km/h)", (double) v, kmh)
             );
@@ -639,7 +639,7 @@ public final class GUI {
         return cb;
     }
 
-    // Row panel helper: 2 buttons ek row me
+    // Row panel helper: two buttons in one row
     private static JPanel rowPanel(Component... comps) {
         JPanel p = new JPanel(new GridLayout(1, comps.length, 8, 0)); // 1 row, n cols
         p.setBackground(BG_PANEL);

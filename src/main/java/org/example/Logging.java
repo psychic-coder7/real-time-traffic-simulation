@@ -1,4 +1,4 @@
-// ===================== Logging.java (same functionality + reduced Hinglish comments) =====================
+// ===================== Logging.java =====================
 package org.example;
 
 import java.time.LocalDateTime;
@@ -10,7 +10,7 @@ public final class Logging {
     // Global logger (use anywhere: Logging.LOG.info(...))
     public static final Logger LOG = Logger.getLogger("TrafficSim");
 
-    // Class load होते ही init() run
+    // init() runs as soon as the class is loaded
     static { init(); }
 
     // Utility class => no objects
@@ -53,7 +53,7 @@ public final class Logging {
 
     private static Handler createConsoleHandler() {
         ConsoleHandler h = new ConsoleHandler();
-        h.setLevel(Level.INFO);                 // console me INFO/WARNING/SEVERE
+        h.setLevel(Level.INFO);                 // console shows INFO/WARNING/SEVERE
         h.setFormatter(new SimpleFormatter());  // uses property format above
         return h;
     }
@@ -61,7 +61,7 @@ public final class Logging {
     private static Handler createFileHandler() throws Exception {
         // filename, maxSize, rotateCount, append
         FileHandler h = new FileHandler("traffic_sim.log", 1_000_000, 3, true);
-        h.setLevel(Level.ALL);                  // file me sab capture
+        h.setLevel(Level.ALL);                  // file captures everything
         h.setFormatter(new SimpleFormatter());  // same format
         return h;
     }
